@@ -2,32 +2,26 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import pandas as pd
+import random
 
 # https://www.nature.com/articles/s41597-025-04747-w
 CONSUMPTION_GENERATION_DATASET_PATH = "datasets/consumption_generation.csv"
 # https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryAreas=EE
 PRICES_DATASET_PATH = "datasets/prices.csv"
 
-# Days in each month (ignoring leap years for simplicity)
-DAYS_IN_MONTH = {
-    1: 31,
-    2: 28,
-    3: 31,
-    4: 30,
-    5: 31,
-    6: 30,
-    7: 31,
-    8: 31,
-    9: 30,
-    10: 31,
-    11: 30,
-    12: 31,
-}
 YEAR = 2023
-
+TRAIN_EPISODE_DAYS = 7
 
 BATTERY_CAPACITY = 15.0 # kwh
 INIT_BATTERY_CHARGE = 5.0 # kwh
+
+# Noise hyperparameters (autoregressive process)
+BETTA_GENERATION = 0.15
+BETTA_CONSUMPTION = 0.3
+SIGMA_GENERATION = 0.02
+SIGMA_CONSUMPTION = 0.05
+RO_GENERATION = 0.97
+RO_CONSUMPTION = 0.93
 
 
 class EnergyHouseholdEnv(gym.Env):
@@ -59,23 +53,26 @@ class EnergyHouseholdEnv(gym.Env):
             - Sell
             - Store
         """
+        
         self.action_space = spaces.Discrete(3)
         self._load_datasets()
 
-    def reset(self, seed=None, options=None):
+    def reset(self, split="train", seed=None, options=None):
         super().reset(seed=seed)
+        self.split = split
+        self._init_noise()
         self._init_time()
         self._init_battery()
-        self._align_prices_with_time()
-        self._align_energy_with_time()
+        self._update_current_prices()
+        self._update_current_energy()
         return self._get_obs(), self._get_info()
 
     def step(self, action):
         reward = self._apply_action(action)
         terminated = self._advance_time()
         if not terminated:
-            self._align_prices_with_time()
-            self._align_energy_with_time()
+            self._update_current_prices()
+            self._update_current_energy()
         obs = self._get_obs()
         info = self._get_info()
         truncated = False
@@ -142,18 +139,45 @@ class EnergyHouseholdEnv(gym.Env):
             .reindex(energy_index, method="ffill")
             .bfill()
         )
-    
+
     def _init_time(self):
-        self.cur_timestamp = self.consumption_generation_data.index[0]
+        if self.split == "test":
+            self.cur_timestamp = self.consumption_generation_data.index[0]
+        elif self.split == "train":
+            self.cur_timestamp = random.choice(self.consumption_generation_data.index)
+        self.initial_timestamp = self.cur_timestamp
     
     def _advance_time(self):
         self.cur_timestamp += pd.Timedelta(minutes=1)
-        return self.cur_timestamp.year > YEAR
+        # the test episode is a full calendar year, so it is terminated when a new year is reached
+        if self.split == "test":
+            return self.cur_timestamp.year > YEAR
+        
+        # the train episode is a random 7 day period, so it is terminated when the 7 days pass
+        # however, if the episode started at the final days of the year, we continue to the beginning of next year, and model it as next year.
+        # As a result, if the current timestamp is eariler than the initial timestamp, we compensate for the year difference in the termination condition.
+        if self.cur_timestamp.year > YEAR:
+            self.cur_timestamp -= pd.DateOffset(years=1)
+        if self.cur_timestamp > self.initial_timestamp:
+            return self.cur_timestamp > self.initial_timestamp + pd.Timedelta(days=TRAIN_EPISODE_DAYS)
+        else:
+            return self.cur_timestamp + pd.DateOffset(years=1) > self.initial_timestamp + pd.Timedelta(days=TRAIN_EPISODE_DAYS)
     
     def _init_battery(self):
-        self.cur_battery = INIT_BATTERY_CHARGE
+        if self.split == "test":
+            self.cur_battery = INIT_BATTERY_CHARGE
+        elif self.split == "train":
+            self.cur_battery = random.uniform(0, BATTERY_CAPACITY)
+    
+    def _init_noise(self):
+        if self.split == "train":
+            self.alpha_generation = random.uniform(1 - BETTA_GENERATION, 1 + BETTA_GENERATION)
+            self.alpha_consumption = random.uniform(1 - BETTA_CONSUMPTION, 1 + BETTA_CONSUMPTION)
+            self.epsilon_generation = 1
+            self.epsilon_consumption = 1
+        
 
-    def _align_prices_with_time(self):
+    def _update_current_prices(self):
         row = self.prices_data.loc[self.cur_timestamp]
         energy_sell_price = float(row["energy_sell_price"])
         energy_buy_price = float(row["energy_buy_price"])
@@ -162,14 +186,24 @@ class EnergyHouseholdEnv(gym.Env):
             "energy_buy_price": energy_buy_price,
         }
 
-    def _align_energy_with_time(self):
+    def _update_current_energy(self):
         row = self.consumption_generation_data.loc[self.cur_timestamp]
-        energy_generation = float(row["energy_generation"])
-        energy_consumption = float(row["energy_consumption"])
-        self.cur_energy = {
-            "energy_generation": energy_generation,
-            "energy_consumption": energy_consumption,
-        }
+        if self.split == "test":
+            self.cur_energy = {
+                "energy_generation": float(row["energy_generation"]),
+                "energy_consumption": float(row["energy_consumption"]),
+            }
+        elif self.split == "train":
+            energy_generation_gt = float(row["energy_generation"])
+            self.epsilon_generation = RO_GENERATION * self.epsilon_generation + random.normalvariate(0, SIGMA_GENERATION)
+            energy_generation = energy_generation_gt * self.alpha_generation * (1 + self.epsilon_generation)
+            energy_consumption_gt = float(row["energy_consumption"])
+            self.epsilon_consumption = RO_CONSUMPTION * self.epsilon_consumption + random.normalvariate(0, SIGMA_CONSUMPTION)
+            energy_consumption = energy_consumption_gt * self.alpha_consumption * (1 + self.epsilon_consumption)
+            self.cur_energy = {
+                "energy_generation": energy_generation,
+                "energy_consumption": energy_consumption,
+            }
     
     def _apply_action(self, action):
         """
@@ -257,10 +291,10 @@ class EnergyHouseholdEnv(gym.Env):
 def main():
     env = EnergyHouseholdEnv()
     acc_reward = 0.0
-    obs, _ = env.reset()
+    obs, _ = env.reset(split="train")
     done = False
     step_count = 0
-    while not done and step_count < 1000:
+    while not done and step_count < 20000:
         action = env.action_space.sample()
         next_obs, reward, terminated, truncated, _ = env.step(action)
         acc_reward += reward
