@@ -286,9 +286,9 @@ class EnergyHouseholdEnv(gym.Env):
         energy_to_buy = energy_consumed
         money_for_buying = energy_to_buy * buy_price
         return -money_for_buying
-        
     
-def main():
+
+if __name__ == "__main__":
     env = EnergyHouseholdEnv()
     acc_reward = 0.0
     obs, _ = env.reset(split="train")
@@ -313,6 +313,3 @@ def main():
     else:
         print("Hit step limit.")
     print(f"Accumulated reward: {acc_reward}")
-
-if __name__ == "__main__":
-    main()
