@@ -57,9 +57,9 @@ class EnergyHouseholdEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
         self._load_datasets()
 
-    def reset(self, split="train", seed=None, options=None):
+    def reset(self, is_train=True, seed=None, options=None):
         super().reset(seed=seed)
-        self.split = split
+        self.is_train = is_train
         self._init_noise()
         self._init_time()
         self._init_battery()
@@ -141,16 +141,16 @@ class EnergyHouseholdEnv(gym.Env):
         )
 
     def _init_time(self):
-        if self.split == "test":
-            self.cur_timestamp = self.consumption_generation_data.index[0]
-        elif self.split == "train":
+        if self.is_train:
             self.cur_timestamp = random.choice(self.consumption_generation_data.index)
+        else:
+            self.cur_timestamp = self.consumption_generation_data.index[0]
         self.initial_timestamp = self.cur_timestamp
     
     def _advance_time(self):
         self.cur_timestamp += pd.Timedelta(minutes=1)
         # the test episode is a full calendar year, so it is terminated when a new year is reached
-        if self.split == "test":
+        if not self.is_train:
             return self.cur_timestamp.year > YEAR
         
         # the train episode is a random 7 day period, so it is terminated when the 7 days pass
@@ -164,13 +164,13 @@ class EnergyHouseholdEnv(gym.Env):
             return self.cur_timestamp + pd.DateOffset(years=1) > self.initial_timestamp + pd.Timedelta(days=TRAIN_EPISODE_DAYS)
     
     def _init_battery(self):
-        if self.split == "test":
-            self.cur_battery = INIT_BATTERY_CHARGE
-        elif self.split == "train":
+        if self.is_train:
             self.cur_battery = random.uniform(0, BATTERY_CAPACITY)
+        else:
+            self.cur_battery = INIT_BATTERY_CHARGE
     
     def _init_noise(self):
-        if self.split == "train":
+        if self.is_train:
             self.alpha_generation = random.uniform(1 - BETTA_GENERATION, 1 + BETTA_GENERATION)
             self.alpha_consumption = random.uniform(1 - BETTA_CONSUMPTION, 1 + BETTA_CONSUMPTION)
             self.epsilon_generation = 1
@@ -188,12 +188,7 @@ class EnergyHouseholdEnv(gym.Env):
 
     def _update_current_energy(self):
         row = self.consumption_generation_data.loc[self.cur_timestamp]
-        if self.split == "test":
-            self.cur_energy = {
-                "energy_generation": float(row["energy_generation"]),
-                "energy_consumption": float(row["energy_consumption"]),
-            }
-        elif self.split == "train":
+        if self.is_train:
             energy_generation_gt = float(row["energy_generation"])
             self.epsilon_generation = RO_GENERATION * self.epsilon_generation + random.normalvariate(0, SIGMA_GENERATION)
             energy_generation = energy_generation_gt * self.alpha_generation * (1 + self.epsilon_generation)
@@ -203,6 +198,11 @@ class EnergyHouseholdEnv(gym.Env):
             self.cur_energy = {
                 "energy_generation": energy_generation,
                 "energy_consumption": energy_consumption,
+            }
+        else:
+            self.cur_energy = {
+                "energy_generation": float(row["energy_generation"]),
+                "energy_consumption": float(row["energy_consumption"]),
             }
     
     def _apply_action(self, action):
@@ -291,7 +291,7 @@ class EnergyHouseholdEnv(gym.Env):
 if __name__ == "__main__":
     env = EnergyHouseholdEnv()
     acc_reward = 0.0
-    obs, _ = env.reset(split="train")
+    obs, _ = env.reset(is_train=True)
     done = False
     step_count = 0
     while not done and step_count < 20000:
