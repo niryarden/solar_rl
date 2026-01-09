@@ -1,11 +1,13 @@
 {
     "base_run": {
-        "replay_memory_size": 100000,
-        "mini_batch_size": 32,
+        "mini_batch_size": 64,
+        "warmup_steps": 10000,
+        "replay_memory_size": 70560,
+        "policy_update_rate": 4,
+        "target_sync_rate": 1440,
         "epsilon_init": 1,
-        "epsilon_decay": 0.9995,
+        "epsilon_decay": 0.9997,
         "epsilon_min": 0.05,
-        "network_sync_rate": 10,
         "learning_rate": 0.0001,
         "discount_factor": 0.99,
         "hidden_dim": 512

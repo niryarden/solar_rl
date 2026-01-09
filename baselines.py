@@ -13,7 +13,7 @@ class Baseline:
         self.baseline_name = baseline_name
         self.env = EnergyHouseholdEnv()
     
-    def run(self):
+    def evaluate(self):
         acc_reward = 0.0
         acc_reward_memory = []
         state, _ = self.env.reset(is_train=False, seed=42)

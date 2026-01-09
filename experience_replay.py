@@ -1,13 +1,9 @@
-# Define memory for Experience Replay
 from collections import deque
 import random
-class ReplayMemory():
-    def __init__(self, maxlen, seed=None):
-        self.memory = deque([], maxlen=maxlen)
 
-        # Optional seed for reproducibility
-        if seed is not None:
-            random.seed(seed)
+class ReplayMemory():
+    def __init__(self, maxlen):
+        self.memory = deque([], maxlen=maxlen)
 
     def append(self, transition):
         self.memory.append(transition)
