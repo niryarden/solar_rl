@@ -216,5 +216,3 @@ __marimo__/
 .streamlit/secrets.toml
 
 .DS_Store
-datasets/consumption_generation.csv
-datasets/consumption-generation.csv

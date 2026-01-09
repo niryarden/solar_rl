@@ -5,7 +5,7 @@ import pandas as pd
 import random
 
 # https://www.nature.com/articles/s41597-025-04747-w
-CONSUMPTION_GENERATION_DATASET_PATH = "datasets/consumption_generation.csv"
+CONSUMPTION_GENERATION_DATASET_PATH = "datasets/**_2023_Final_Output.csv"
 # https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryAreas=EE
 PRICES_DATASET_PATH = "datasets/prices.csv"
 
@@ -103,10 +103,19 @@ class EnergyHouseholdEnv(gym.Env):
         - aligns and fills the price data index to match the energy data's timestamps
         This ensures every energy observation has a corresponding, synchronized price/energy value.
         """
-        self.consumption_generation_data = (
-            pd.read_csv(CONSUMPTION_GENERATION_DATASET_PATH, header=0, parse_dates=[0])
-            .set_axis(["timestamp", "energy_consumption", "energy_generation"], axis=1)
-        )
+        monthly_dfs = []
+        for month in range(1, 13):
+            month_df = pd.read_csv(CONSUMPTION_GENERATION_DATASET_PATH.replace("**", str(month)), header=0)
+            month_df = month_df.rename(
+                columns={
+                    "Time": "timestamp",
+                    "Total Load": "energy_consumption",
+                    "Total PV Gen": "energy_generation",
+                }
+            )
+            month_df = month_df[["timestamp", "energy_consumption", "energy_generation"]]
+            monthly_dfs.append(month_df)
+        self.consumption_generation_data = pd.concat(monthly_dfs, ignore_index=True)
         self.consumption_generation_data["timestamp"] = pd.to_datetime(
             self.consumption_generation_data["timestamp"]
         ).dt.floor("min")
