@@ -127,10 +127,12 @@ class Agent():
         rewards = torch.stack(rewards)
         terminations = torch.tensor(terminations).float().to(device)
 
-        # Calculate target Q values (gt) and current policy's Q values.
-        # compare them to calculate the loss
+        # Double DQN target: action selection by policy network, evaluation by target network
         with torch.no_grad():
-            target_q = rewards + (1 - terminations) * self.discount_factor * target_dqn(new_states).max(dim=1)[0]
+            next_actions = policy_dqn(new_states).argmax(dim=1, keepdim=True)
+            next_target_q = target_dqn(new_states).gather(dim=1, index=next_actions).squeeze()
+            target_q = rewards + (1 - terminations) * self.discount_factor * next_target_q
+
         current_q = policy_dqn(states).gather(dim=1, index=actions.unsqueeze(dim=1)).squeeze()
         loss = self.loss_fn(current_q, target_q)
 
