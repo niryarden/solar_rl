@@ -65,7 +65,7 @@ class EnergyHouseholdEnv(gym.Env):
         self._init_battery()
         self._update_current_prices()
         self._update_current_energy()
-        return self._get_obs(), self._get_info()
+        return self._get_state(), self._get_info()
 
     def step(self, action):
         reward = self._apply_action(action)
@@ -73,23 +73,23 @@ class EnergyHouseholdEnv(gym.Env):
         if not terminated:
             self._update_current_prices()
             self._update_current_energy()
-        obs = self._get_obs()
+        state = self._get_state()
         info = self._get_info()
         truncated = False
-        return obs, reward, terminated, truncated, info
+        return state, reward, terminated, truncated, info
     
-    def _get_obs(self):
+    def _get_state(self):
         timestamp = self.cur_timestamp
-        obs = {}
-        obs |= {
+        state = {}
+        state |= {
             "time": timestamp.hour * 60 + timestamp.minute,
             "day_of_week": timestamp.dayofweek,
             "month": timestamp.month - 1,
         }
-        obs |= { "battery_charge": self.cur_battery }
-        obs |= self.cur_prices
-        obs |= self.cur_energy
-        return obs
+        state |= { "battery_charge": self.cur_battery }
+        state |= self.cur_prices
+        state |= self.cur_energy
+        return state
     
     def _get_info(self):
         return {}
@@ -291,24 +291,23 @@ class EnergyHouseholdEnv(gym.Env):
 if __name__ == "__main__":
     env = EnergyHouseholdEnv()
     acc_reward = 0.0
-    obs, _ = env.reset(is_train=True)
-    done = False
+    state, _ = env.reset(is_train=True)
+    terminated = False
     step_count = 0
-    while not done and step_count < 20000:
+    while not terminated and step_count < 20000:
         action = env.action_space.sample()
-        next_obs, reward, terminated, truncated, _ = env.step(action)
+        next_state, reward, terminated, _, _ = env.step(action)
         acc_reward += reward
         print(f"Step {step_count}:")
         print(f"  Action taken: {action}")
         print(f"  Reward: {reward}")
-        print("  Next observation:")
-        for key, value in next_obs.items():
+        print("  Next state:")
+        for key, value in next_state.items():
             print_value = f"{value:.4f}" if isinstance(value, float) else str(value)
             print(f"    {key}: {print_value}")
         
-        done = terminated or truncated
         step_count += 1
-    if done:
+    if terminated:
         print("Finished with termination.")
     else:
         print("Hit step limit.")
