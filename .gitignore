@@ -217,3 +217,4 @@ __marimo__/
 
 .DS_Store
 datasets/consumption_generation.csv
+datasets/consumption-generation.csv
