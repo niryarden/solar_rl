@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from tqdm import tqdm
+import wandb
 
 import json
 import random
@@ -25,7 +26,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class Agent():
-    def __init__(self, hyperparameter_set):
+    def __init__(self, hyperparameter_set, log_wandb=False):
         with open('hyperparameters.json', 'r') as file:
             all_hyperparameter_sets = json.load(file)
             hyperparameters = all_hyperparameter_sets[hyperparameter_set]
@@ -44,18 +45,23 @@ class Agent():
         self.discount_factor    = hyperparameters['discount_factor']        # discount rate (gamma)
         self.hidden_dim         = hyperparameters['hidden_dim']             # DQN width
 
+        self.wandb_run = None
+        if log_wandb:
+            self.wandb_run = wandb.init(
+                entity="nir-yarden-hebrew-university-of-jerusalem",
+                project="solar-rl",
+                name=self.hyperparameter_set,
+                config=hyperparameters,
+            )
+
         self.loss_fn = nn.SmoothL1Loss()
         self.optimizer = None  # Initialize later.
 
         run_dir = os.path.join(RUNS_DIR, self.hyperparameter_set)
         os.makedirs(run_dir, exist_ok=True)
         self.MODEL_FILE = os.path.join(run_dir, f'{self.hyperparameter_set}.pt')
-        self.GRAPH_FILE = os.path.join(run_dir, f'{self.hyperparameter_set}.png')
 
     def train(self):
-        start_time = datetime.now()
-        print(f"{start_time.strftime(DATE_FORMAT)}: Training starting...")
-
         env = EnergyHouseholdEnv()
         state_scaler = StateScaler(env, device)
 
@@ -72,6 +78,7 @@ class Agent():
         
         step_count = 0  # counts environment steps across episodes
         best_reward = -9999999
+        last_saved_episode = -1
 
         # Train indefinitely, until manually stop
         for episode in itertools.count():
@@ -109,12 +116,17 @@ class Agent():
                     if step_count % self.target_sync_rate == 0:
                         target_dqn.load_state_dict(policy_dqn.state_dict())
 
-            # Save model when new best reward is obtained.
-            if episode_acc_reward > best_reward:
+            if episode_acc_reward > best_reward or episode - last_saved_episode >= 50:
                 print(f"{datetime.now().strftime(DATE_FORMAT)}: New best reward {episode_acc_reward:.2f} at episode {episode}, saving model...")                
                 torch.save(policy_dqn.state_dict(), self.MODEL_FILE)
-                best_reward = episode_acc_reward
-
+                last_saved_episode = episode
+                if episode_acc_reward > best_reward:
+                    best_reward = episode_acc_reward
+            
+            self.wandb_run.log({
+                "episode": episode,
+                "reward": episode_acc_reward
+            })
             
     
 

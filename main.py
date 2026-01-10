@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train or test model.')
+    parser.add_argument('--wandb', action='store_true', help='Use wandb')
     parser.add_argument('--hyperparameters', type=str, required=True, help='Name of hyperparameters set from the hyperparameters.json file')
     parser.add_argument('--train', action='store_true', help='Training mode')
     return parser.parse_args()
 
 
 def train(args):
-    agent = Agent(hyperparameter_set=args.hyperparameters)
+    agent = Agent(hyperparameter_set=args.hyperparameters, log_wandb=args.wandb)
     agent.train()
 
 
