@@ -79,6 +79,7 @@ class Agent():
         step_count = 0  # counts environment steps across episodes
         best_reward = -9999999
         last_saved_episode = -1
+        last_30_acc_rewards = []
 
         # Train indefinitely, until manually stop
         for episode in itertools.count():
@@ -123,11 +124,14 @@ class Agent():
                 if episode_acc_reward > best_reward:
                     best_reward = episode_acc_reward
             
+            last_30_acc_rewards.append(episode_acc_reward)
+            last_30_acc_rewards = last_30_acc_rewards[-30:]
+            
             self.wandb_run.log({
                 "episode": episode,
-                "reward": episode_acc_reward
+                "reward": episode_acc_reward,
+                "average_last_30_episode_rewards": sum(last_30_acc_rewards) / len(last_30_acc_rewards)
             })
-            
     
 
     def optimize(self, mini_batch, policy_dqn, target_dqn):
