@@ -1,0 +1,8 @@
+torch
+gymnasium
+numpy
+pandas
+matplotlib
+tqdm
+wandb
+requests

@@ -2,7 +2,7 @@
 
 This project implements a reinforcement learning (RL) agent to optimize energy management in a simulated household environment. The agent aims to make decisions that maximize accumulated reward by efficiently managing energy consumption, generation, storage, and trading.
 
-## Getting Started
+## Run the Project
 ### 1. Install requirements
 
 ```bash
@@ -51,7 +51,7 @@ You may now evalute your model using
 python main.py --hyperparameters example_run
 ```
 
-## Files
+## Code
 
 - `main.py`: Entry point for training and evaluation.
 - `agent.py`: Implementation of the RL agent.
