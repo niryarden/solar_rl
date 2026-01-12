@@ -1,7 +1,11 @@
 import argparse
+import os
 from agent import Agent
 from baselines import Baseline, BaselineName
 import matplotlib.pyplot as plt
+
+
+RUNS_DIR = "run_outputs"
 
 
 def parse_args():
@@ -50,7 +54,10 @@ def evaluate(args):
     frame.set_alpha(0.9)
     frame.set_boxstyle("round,pad=0.35")
     ax.grid(True, axis="y", alpha=0.25)
-    fig.savefig("plots/accumulated_reward.png", dpi=220, bbox_inches="tight")
+    out_dir = os.path.join(RUNS_DIR, args.hyperparameters)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+    fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
     plt.close(fig)
 
 
