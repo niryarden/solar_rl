@@ -5,10 +5,10 @@
 #SBATCH --mem-per-cpu=40g
 #SBATCH --time=2-0
 #SBATCH -c4
-#SBATCH --output=/cs/labs/roys/nir.yarden/other/solar_rl/run_outputs/base_run_256/base_run_256.log
-#SBATCH --job-name=base_run_256
+#SBATCH --output=/cs/labs/roys/nir.yarden/other/solar_rl/run_outputs/results_run/results_run.log
+#SBATCH --job-name=results_run
 
-RUN_NAME="base_run_256"
+RUN_NAME="results_run"
 
 export PATH="$HOME/.local/bin:$PATH"
 

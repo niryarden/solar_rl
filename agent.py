@@ -133,6 +133,9 @@ class Agent():
                     "reward": episode_acc_reward,
                     "average_last_30_episode_rewards": sum(last_30_acc_rewards) / len(last_30_acc_rewards)
                 })
+
+            if episode > 5000:
+                break
     
 
     def optimize(self, mini_batch, policy_dqn, target_dqn):
