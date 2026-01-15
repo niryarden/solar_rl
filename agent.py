@@ -181,7 +181,7 @@ class Agent():
         step_count = 0
         cur_month = state_dict["month"]
 
-        with tqdm(total=12, initial=1) as pbar:
+        with tqdm(total=12) as pbar:
             while not terminated:
                 with torch.no_grad():
                     action = policy_dqn(state.unsqueeze(dim=0)).squeeze().argmax()
@@ -195,5 +195,6 @@ class Agent():
                 step_count += 1
                 if step_count % 1440 == 0:
                     acc_reward_memory.append(acc_reward)
+            pbar.update(1)
         
         return acc_reward_memory
