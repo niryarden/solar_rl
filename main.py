@@ -28,10 +28,11 @@ def evaluate(args):
         print(f"Evaluating baseline: {baseline_name.value}")
         baseline = Baseline(baseline_name=baseline_name)
         acc_reward_memory_dict[baseline_name.value] = baseline.evaluate()
+        break
     
-    print("Evaluating agent")
-    agent = Agent(hyperparameter_set=args.hyperparameters)
-    acc_reward_memory_dict["agent"] = agent.evaluate()
+    # print("Evaluating agent")
+    # agent = Agent(hyperparameter_set=args.hyperparameters)
+    # acc_reward_memory_dict["agent"] = agent.evaluate()
     
     plt.style.use("seaborn-v0_8-whitegrid")
     fig, ax = plt.subplots(figsize=(11, 5), constrained_layout=True)
