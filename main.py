@@ -7,7 +7,6 @@ from IPython.display import display
 
 
 RUNS_DIR = "run_outputs"
-SHOW_PLOTS = os.getenv("COLAB_SHOW_PLOTS", "0") == "1"
 
 
 def parse_args():
@@ -29,11 +28,10 @@ def evaluate(args):
         print(f"Evaluating baseline: {baseline_name.value}")
         baseline = Baseline(baseline_name=baseline_name)
         acc_reward_memory_dict[baseline_name.value] = baseline.evaluate()
-        break
     
-    # print("Evaluating agent")
-    # agent = Agent(hyperparameter_set=args.hyperparameters)
-    # acc_reward_memory_dict["agent"] = agent.evaluate()
+    print("Evaluating agent")
+    agent = Agent(hyperparameter_set=args.hyperparameters)
+    acc_reward_memory_dict["agent"] = agent.evaluate()
     
     plt.style.use("seaborn-v0_8-whitegrid")
     fig, ax = plt.subplots(figsize=(11, 5), constrained_layout=True)
@@ -60,10 +58,7 @@ def evaluate(args):
     out_dir = os.path.join(RUNS_DIR, args.hyperparameters)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
-    if SHOW_PLOTS:
-        display(fig)
-    else:
-        fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
+    fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
     plt.close(fig)
 
 
