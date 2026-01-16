@@ -60,7 +60,7 @@ def evaluate(args):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
     if SHOW_PLOTS:
-        plt.show()
+        plt.show(block=False)
     else:
         fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
     plt.close(fig)
