@@ -3,7 +3,6 @@ import os
 from agent import Agent
 from baselines import Baseline, BaselineName
 import matplotlib.pyplot as plt
-from IPython.display import display
 
 
 RUNS_DIR = "run_outputs"
@@ -59,6 +58,7 @@ def evaluate(args):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
     fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
+    print("Plot saved")
     plt.close(fig)
 
 
