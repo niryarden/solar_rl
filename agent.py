@@ -181,7 +181,7 @@ class Agent():
         step_count = 0
         cur_month = state_dict["month"]
 
-        with tqdm(total=12) as pbar:
+        with tqdm(total=12, desc="Iterating over the months") as pbar:
             while not terminated:
                 with torch.no_grad():
                     action = policy_dqn(state.unsqueeze(dim=0)).squeeze().argmax()

@@ -19,7 +19,7 @@ class Baseline:
         state, _ = self.env.reset(is_train=False, seed=42)
         terminated = False
         step_count = 0
-        with tqdm(total=12, initial=1) as pbar:
+        with tqdm(total=12, desc="Iterating over the months") as pbar:
             while not terminated:
                 action = self._get_action(state)
                 new_state, reward, terminated, _, _ = self.env.step(action)
@@ -30,7 +30,7 @@ class Baseline:
                 step_count += 1
                 if step_count % 1440 == 0:
                     acc_reward_memory.append(acc_reward)
-        
+            pbar.update(1)
         return acc_reward_memory
     
     def _get_action(self, state):
