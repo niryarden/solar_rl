@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 
 RUNS_DIR = "run_outputs"
+SHOW_PLOTS = os.getenv("COLAB_SHOW_PLOTS", "0") == "1"
 
 
 def parse_args():
@@ -57,7 +58,10 @@ def evaluate(args):
     out_dir = os.path.join(RUNS_DIR, args.hyperparameters)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
-    fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
+    if SHOW_PLOTS:
+        fig.show()
+    else:
+        fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
     plt.close(fig)
 
 
