@@ -59,8 +59,11 @@ def evaluate(args):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
     if SHOW_PLOTS:
+        print("Showing plot...")
         fig.show()
+        print("Plot shown")
     else:
+        print("Saving plot...")
         fig.savefig(os.path.join(out_dir, "accumulated_reward.png"), dpi=220, bbox_inches="tight")
     plt.close(fig)
 
